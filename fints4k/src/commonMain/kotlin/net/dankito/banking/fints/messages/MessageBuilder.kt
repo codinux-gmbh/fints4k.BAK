@@ -19,6 +19,7 @@ import net.dankito.banking.fints.messages.segmente.implementierte.tan.TanGenerat
 import net.dankito.banking.fints.messages.segmente.implementierte.umsaetze.*
 import net.dankito.banking.fints.model.*
 import net.dankito.banking.fints.response.segments.JobParameters
+import net.dankito.banking.fints.response.segments.RetrieveAccountTransactionsInCamtParameters
 import net.dankito.banking.fints.response.segments.SepaAccountInfoParameters
 import net.dankito.banking.fints.response.segments.TanResponse
 import net.dankito.banking.fints.util.FinTsUtils
@@ -149,21 +150,45 @@ open class MessageBuilder(protected val generator: ISegmentNumberGenerator = Seg
     open fun createGetTransactionsMessage(parameter: GetTransactionsParameter, account: AccountData,
                                           dialogContext: DialogContext): MessageBuilderResult {
 
-        val result = supportsGetTransactionsMt940(account)
+        var (result, camtDescriptorUrn) = supportsGetTransactionsCamt(account)
 
-        if (result.isJobVersionSupported) {
-            val transactionsJob = if (result.isAllowed(7)) KontoumsaetzeZeitraumMt940Version7(generator.resetSegmentNumber(2), parameter, dialogContext.bank, account)
-            else if (result.isAllowed(6)) KontoumsaetzeZeitraumMt940Version6(generator.resetSegmentNumber(2), parameter, account)
-            else KontoumsaetzeZeitraumMt940Version5(generator.resetSegmentNumber(2), parameter, account)
+        if (result.isJobVersionSupported && camtDescriptorUrn != null) {
+            return createGetTransactionsMessageCamt(result, camtDescriptorUrn, parameter, dialogContext, account)
+        }
+        else {
+            result = supportsGetTransactionsMt940(account)
 
-            val segments = mutableListOf<Segment>(transactionsJob)
-
-            addTanSegmentIfRequired(CustomerSegmentId.AccountTransactionsMt940, dialogContext, segments)
-
-            return createSignedMessageBuilderResult(dialogContext, segments)
+            if (result.isJobVersionSupported) {
+                return createGetTransactionsMessageMt940(result, parameter, dialogContext, account)
+            }
         }
 
         return result
+    }
+
+    protected open fun createGetTransactionsMessageMt940(result: MessageBuilderResult, parameter: GetTransactionsParameter,
+                                                  dialogContext: DialogContext, account: AccountData): MessageBuilderResult {
+
+        val transactionsJob = if (result.isAllowed(7)) KontoumsaetzeZeitraumMt940Version7(generator.resetSegmentNumber(2), parameter, dialogContext.bank, account)
+        else if (result.isAllowed(6)) KontoumsaetzeZeitraumMt940Version6(generator.resetSegmentNumber(2), parameter, account)
+        else KontoumsaetzeZeitraumMt940Version5(generator.resetSegmentNumber(2), parameter, account)
+
+        val segments = mutableListOf<Segment>(transactionsJob)
+
+        addTanSegmentIfRequired(CustomerSegmentId.AccountTransactionsMt940, dialogContext, segments)
+
+        return createSignedMessageBuilderResult(dialogContext, segments)
+    }
+
+    protected open fun createGetTransactionsMessageCamt(result: MessageBuilderResult, camtDescriptorUrn: String, parameter: GetTransactionsParameter,
+                                                        dialogContext: DialogContext, account: AccountData): MessageBuilderResult {
+
+        val segments = mutableListOf<Segment>(KontoumsaetzeZeitraumCamt(generator.resetSegmentNumber(2), dialogContext.bank, account,
+        listOf(camtDescriptorUrn), parameter))
+
+        addTanSegmentIfRequired(CustomerSegmentId.AccountTransactionsCamt, dialogContext, segments)
+
+        return createSignedMessageBuilderResult(dialogContext, segments)
     }
 
     open fun supportsGetTransactions(account: AccountData): Boolean {
@@ -172,6 +197,24 @@ open class MessageBuilder(protected val generator: ISegmentNumberGenerator = Seg
 
     protected open fun supportsGetTransactionsMt940(account: AccountData): MessageBuilderResult {
         return getSupportedVersionsOfJobForAccount(CustomerSegmentId.AccountTransactionsMt940, account, listOf(5, 6, 7))
+    }
+
+    protected open fun supportsGetTransactionsCamt(account: AccountData): Pair<MessageBuilderResult, String?> {
+        val camtJobResult = getSupportedVersionsOfJobForAccount(CustomerSegmentId.AccountTransactionsCamt, account, listOf(1))
+
+        if (camtJobResult.isJobVersionSupported) {
+            val supportedCamtFormat = account.allowedJobs
+                .filterIsInstance<RetrieveAccountTransactionsInCamtParameters>()
+                .sortedByDescending { it.segmentVersion }
+                .flatMap { it.supportedCamtFormats}
+                .firstOrNull { it.contains("camt.052") }
+
+            if (supportedCamtFormat != null) {
+                return Pair(camtJobResult, supportedCamtFormat)
+            }
+        }
+
+        return Pair(MessageBuilderResult(false), null)
     }
 
 
@@ -255,9 +298,7 @@ open class MessageBuilder(protected val generator: ISegmentNumberGenerator = Seg
 
         val segmentId = if (data.instantPayment) CustomerSegmentId.SepaInstantPaymentBankTransfer else CustomerSegmentId.SepaBankTransfer
 
-        val messageBuilderResultAndNullableUrn = supportsBankTransferAndSepaVersion(dialogContext.bank, account, segmentId)
-        val result = messageBuilderResultAndNullableUrn.first
-        val urn = messageBuilderResultAndNullableUrn.second
+        val (result, urn) = supportsBankTransferAndSepaVersion(dialogContext.bank, account, segmentId)
 
         if (result.isJobVersionSupported && urn != null) {
             val segments = mutableListOf<Segment>(SepaBankTransferBase(segmentId, generator.resetSegmentNumber(2),

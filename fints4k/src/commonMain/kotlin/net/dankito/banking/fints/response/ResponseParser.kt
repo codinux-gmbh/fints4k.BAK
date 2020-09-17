@@ -112,7 +112,11 @@ open class ResponseParser(
             InstituteSegmentId.ChangeTanMediaParameters.id -> parseChangeTanMediaParameters(segment, segmentId, dataElementGroups)
 
             InstituteSegmentId.Balance.id -> parseBalanceSegment(segment, dataElementGroups)
+
             InstituteSegmentId.AccountTransactionsMt940.id -> parseMt940AccountTransactions(segment, dataElementGroups)
+            InstituteSegmentId.AccountTransactionsMt940Parameters.id -> parseMt940AccountTransactionsParameters(segment, segmentId, dataElementGroups)
+            InstituteSegmentId.AccountTransactionsCamt.id -> parseCamtAccountTransactions(segment, dataElementGroups)
+            InstituteSegmentId.AccountTransactionsCamtParameters.id -> parseCamtAccountTransactionsParameters(segment, segmentId, dataElementGroups)
 
             else -> {
                 if (JobParametersSegmentRegex.matches(segmentId)) {
@@ -247,7 +251,8 @@ open class ResponseParser(
         val productName = if (dataElementGroups.size > 8) parseStringToNullIfEmpty(dataElementGroups[8]) else null
         val limit = if (dataElementGroups.size > 9) parseStringToNullIfEmpty(dataElementGroups[9]) else null // TODO: parse limit
 
-        val allowedJobNames = if (dataElementGroups.size > 10) parseAllowedJobNames(dataElementGroups.subList(10, dataElementGroups.size - 1)) else listOf()
+        val isExtensionSet = dataElementGroups.size > 11 && dataElementGroups.last().endsWith('}')
+        val allowedJobNames = if (dataElementGroups.size > 10) parseAllowedJobNames(dataElementGroups.subList(10, if (isExtensionSet) dataElementGroups.size - 1 else dataElementGroups.size)) else listOf()
         val extension = if (dataElementGroups.size > 11) parseStringToNullIfEmpty(dataElementGroups[dataElementGroups.size - 1]) else null
 
         return AccountInfo(accountNumber, subAccountAttribute, bankCountryCode, bankCode, iban, customerId, accountType,
@@ -646,6 +651,45 @@ open class ResponseParser(
         val unbookedTransactionsString = if (dataElementGroups.size > 2) extractBinaryData(dataElementGroups[2]) else null
 
         return ReceivedAccountTransactions(bookedTransactionsString, unbookedTransactionsString, segment)
+    }
+
+    protected open fun parseMt940AccountTransactionsParameters(segment: String, segmentId: String, dataElementGroups: List<String>): RetrieveAccountTransactionsInMt940Parameters {
+        val jobParameters = parseJobParameters(segment, segmentId, dataElementGroups)
+
+        val transactionsParameterIndex = if (jobParameters.segmentVersion >= 6 || segmentId == InstituteSegmentId.AccountTransactionsCamtParameters.id) 4 else 3
+        val dataElements = getDataElements(dataElementGroups[transactionsParameterIndex])
+
+        val countDaysForWhichTransactionsAreKept = parseInt(dataElements[0])
+        val settingCountEntriesAllowed = parseBoolean(dataElements[1])
+        val settingAllAccountAllowed = if (dataElements.size > 2) parseBoolean(dataElements[2]) else false
+
+        return RetrieveAccountTransactionsInMt940Parameters(jobParameters, countDaysForWhichTransactionsAreKept, settingCountEntriesAllowed, settingAllAccountAllowed)
+    }
+
+
+    protected open fun parseCamtAccountTransactions(segment: String, dataElementGroups: List<String>): ReceivedAccountTransactions {
+        // TODO: is it senseful to parse second data element group, the international account info?
+        val camtDescriptor = dataElementGroups[2]
+
+        val bookedTransactionsDataElements = getDataElements(dataElementGroups[3])
+        val bookedTransactionsCamt052PerDay = bookedTransactionsDataElements.map { extractBinaryData(it) }
+
+        val unbookedTransactionsCamt052 = if (dataElementGroups.size > 4) extractBinaryData(dataElementGroups[4]) else null
+
+        // TODO: how to pass XML files to ReceivedAccountTransactions?
+        return ReceivedAccountTransactions(bookedTransactionsCamt052PerDay.firstOrNull() ?: "", unbookedTransactionsCamt052, segment)
+    }
+
+    protected open fun parseCamtAccountTransactionsParameters(segment: String, segmentId: String, dataElementGroups: List<String>): RetrieveAccountTransactionsInCamtParameters {
+        val jobParameters = parseJobParameters(segment, segmentId, dataElementGroups)
+        val mt940Parameters = parseMt940AccountTransactionsParameters(segment, segmentId, dataElementGroups)
+
+        val dataElements = getDataElements(dataElementGroups[4])
+
+        val supportedCamtFormats = dataElements.subList(3, dataElements.size)
+
+        return RetrieveAccountTransactionsInCamtParameters(jobParameters, mt940Parameters.countDaysForWhichTransactionsAreKept, mt940Parameters.settingCountEntriesAllowed,
+            mt940Parameters.settingAllAccountAllowed, supportedCamtFormats)
     }
 
 

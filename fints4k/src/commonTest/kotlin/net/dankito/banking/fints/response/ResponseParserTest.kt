@@ -1043,6 +1043,70 @@ class ResponseParserTest : FinTsTestBase() {
     }
 
 
+    @Test
+    fun parseAccountTransactionsMt940Parameters_Version4() {
+
+        // given
+        val countDaysForWhichTransactionsAreKept = 90
+
+        // when
+        val result = underTest.parse("HIKAZS:21:4:4+20+1+$countDaysForWhichTransactionsAreKept:N'")
+
+        // then
+        assertSuccessfullyParsedSegment(result, InstituteSegmentId.AccountTransactionsMt940Parameters, 21, 4, 4)
+
+        result.getFirstSegmentById<RetrieveAccountTransactionsInMt940Parameters>(InstituteSegmentId.AccountTransactionsMt940Parameters)?.let { segment ->
+            expect(segment.countDaysForWhichTransactionsAreKept).toBe(countDaysForWhichTransactionsAreKept)
+            expect(segment.settingCountEntriesAllowed).isFalse()
+            expect(segment.settingAllAccountAllowed).isFalse()
+        }
+        ?: run { fail("No segment of type AccountTransactionsMt940Parameters found in ${result.receivedSegments}") }
+    }
+
+    @Test
+    fun parseAccountTransactionsMt940Parameters_Version6() {
+
+        // given
+        val countDaysForWhichTransactionsAreKept = 90
+
+        // when
+        val result = underTest.parse("HIKAZS:23:6:4+20+1+1+$countDaysForWhichTransactionsAreKept:N:N'")
+
+        // then
+        assertSuccessfullyParsedSegment(result, InstituteSegmentId.AccountTransactionsMt940Parameters, 23, 6, 4)
+
+        result.getFirstSegmentById<RetrieveAccountTransactionsInMt940Parameters>(InstituteSegmentId.AccountTransactionsMt940Parameters)?.let { segment ->
+            expect(segment.countDaysForWhichTransactionsAreKept).toBe(countDaysForWhichTransactionsAreKept)
+            expect(segment.settingCountEntriesAllowed).isFalse()
+            expect(segment.settingAllAccountAllowed).isFalse()
+        }
+        ?: run { fail("No segment of type AccountTransactionsMt940Parameters found in ${result.receivedSegments}") }
+    }
+
+    @Test
+    fun parseAccountTransactionsCamtParameters() {
+
+        // given
+        val camtDescriptorUrn = "urn?:iso?:std?:iso?:20022?:tech?:xsd?:camt.052.001.02"
+        val countDaysForWhichTransactionsAreKept = 160
+
+        // when
+        // "HICAZS:27:1:4+999+1+0+160:N:N:urn?:iso?:std?:iso?:20022?:tech?:xsd?:camt.052.001.02'"
+        val result = underTest.parse("HICAZS:27:1:4+999+1+0+$countDaysForWhichTransactionsAreKept:N:N:$camtDescriptorUrn'")
+
+        // then
+        assertSuccessfullyParsedSegment(result, InstituteSegmentId.AccountTransactionsCamtParameters, 27, 1, 4)
+
+        result.getFirstSegmentById<RetrieveAccountTransactionsInCamtParameters>(InstituteSegmentId.AccountTransactionsCamtParameters)?.let { segment ->
+            expect(segment.countDaysForWhichTransactionsAreKept).toBe(countDaysForWhichTransactionsAreKept)
+            expect(segment.settingCountEntriesAllowed).isFalse()
+            expect(segment.settingAllAccountAllowed).isFalse()
+            expect(segment.supportedCamtFormats).contains(camtDescriptorUrn.replace("?:", ":"))
+        }
+        ?: run { fail("No segment of type AccountTransactionsCamtParameters found in ${result.receivedSegments}") }
+    }
+
+
     private fun assertSuccessfullyParsedSegment(result: Response, segmentId: ISegmentId, segmentNumber: Int,
                                                 segmentVersion: Int, referenceSegmentNumber: Int? = null) {
 

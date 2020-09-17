@@ -27,13 +27,4 @@ abstract class KontoumsaetzeZeitraumMt940Base(
     segmentNumber: Int,
     account: Datenelementgruppe,
     parameter: GetTransactionsParameter
-)
-    : Segment(listOf(
-        Segmentkopf(CustomerSegmentId.AccountTransactionsMt940, segmentVersion, segmentNumber),
-        account,
-        AlleKonten(false, Existenzstatus.Mandatory), // currently no supported, we retrieve account transactions account by account (most banks don't support AlleKonten anyway)
-        Datum(parameter.fromDate, Existenzstatus.Optional),
-        Datum(parameter.toDate, Existenzstatus.Optional),
-        MaximaleAnzahlEintraege(parameter.maxCountEntries, Existenzstatus.Optional), // > 0. O: „Eingabe Anzahl Einträge erlaubt“ (BPD) = „J“. N: sonst
-        Aufsetzpunkt(null, Existenzstatus.Optional) // will be set dynamically, see MessageBuilder.rebuildMessageWithContinuationId(); M: vom Institut wurde ein Aufsetzpunkt rückgemeldet. N: sonst
-))
+) : KontoumsaetzeZeitraumBase(CustomerSegmentId.AccountTransactionsMt940, segmentVersion, segmentNumber, account, parameter)

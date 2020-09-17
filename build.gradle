@@ -18,6 +18,8 @@ ext {
 
     luceneUtilsVersion = "0.5.1-SNAPSHOT"
 
+    jacksonXmlVersion = "2.11.2"
+
 
     textExtractorVersion = "0.5.1-SNAPSHOT"
 

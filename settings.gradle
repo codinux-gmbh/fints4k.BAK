@@ -51,8 +51,10 @@ project(':RoomBankingPersistence').projectDir = "$rootDir/persistence/database/R
 include ':BankFinder'
 include ':LuceneBankFinder'
 include ':BankListCreator'
+include ':SepaTools'
 
 
 project(':BankFinder').projectDir = "$rootDir/tools/BankFinder/" as File
 project(':LuceneBankFinder').projectDir = "$rootDir/tools/LuceneBankFinder/" as File
 project(':BankListCreator').projectDir = "$rootDir/tools/BankListCreator/" as File
+project(':SepaTools').projectDir = "$rootDir/tools/SepaTools/" as File
