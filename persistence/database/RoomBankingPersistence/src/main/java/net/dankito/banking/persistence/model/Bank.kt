@@ -14,7 +14,7 @@ import net.dankito.banking.ui.model.tan.TanMethod
 open class Bank(
     override var bankCode: String,
     override var userName: String,
-    override var password: String,
+    override var password: String?,
     override var finTsServerAddress: String,
     override var bankName: String,
     override var bic: String,

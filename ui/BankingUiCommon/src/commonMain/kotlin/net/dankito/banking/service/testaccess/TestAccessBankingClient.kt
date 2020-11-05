@@ -45,14 +45,14 @@ open class TestAccessBankingClient(
         }
     }
 
-    override fun getTransactionsAsync(parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
+    override fun getTransactionsAsync(password: String, parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
         asyncRunner.runAsync {
             callback(GetTransactionsResponse(createRetrievedAccountData(parameter.account)))
         }
     }
 
 
-    override fun transferMoneyAsync(data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
+    override fun transferMoneyAsync(password: String, data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
         asyncRunner.runAsync {
             callback(BankingClientResponse(true, null))
         }

@@ -343,13 +343,15 @@ open class BankingPresenter(
         getBankingClientForBank(account.bank)?.let { client ->
             val startDate = Date()
 
-            client.getTransactionsAsync(GetTransactionsParameter(account,true, fromDate, null, abortIfTanIsRequired, { receivedAccountTransactionChunk(account, it) } )) { response ->
+            getPasswordForAccount(account) { password ->
+                client.getTransactionsAsync(password, GetTransactionsParameter(account,true, fromDate, null, abortIfTanIsRequired, { receivedAccountTransactionChunk(account, it) } )) { response ->
 
-                if (response.tanRequiredButWeWereToldToAbortIfSo == false) { // don't call retrievedAccountTransactions() if aborted due to TAN required but we told client to abort if so
-                    retrievedAccountTransactions(response, startDate, fromDate == null)
+                    if (response.tanRequiredButWeWereToldToAbortIfSo == false) { // don't call retrievedAccountTransactions() if aborted due to TAN required but we told client to abort if so
+                        retrievedAccountTransactions(response, startDate, fromDate == null)
+                    }
+
+                    callback?.invoke(response)
                 }
-
-                callback?.invoke(response)
             }
         }
     }
@@ -491,6 +493,16 @@ open class BankingPresenter(
     }
 
 
+    protected open fun getPasswordForAccount(account: TypedBankAccount, result: (password: String) -> Unit) {
+        getPasswordForAccount(account.bank as TypedBankData, result)
+    }
+
+    protected open fun getPasswordForAccount(bank: TypedBankData, result: (password: String) -> Unit) {
+        // TODO: implement enter password dialog
+        result(bank.password ?: "") // password is currently always set
+    }
+
+
     open fun formatAmount(amount: BigDecimal): String { // for languages not supporting default parameters
         return formatAmount(amount, null)
     }
@@ -594,16 +606,18 @@ open class BankingPresenter(
         val account = data.account
 
         getBankingClientForBank(account.bank)?.let { client ->
-            client.transferMoneyAsync(data) { response ->
-                if (response.successful) {
-                    updateAccountTransactionsAsync(account, true)
-                    handleSuccessfulResponse(account.bank, response)
-                }
-                else {
-                    handleUnsuccessfulResponse(account.bank, response)
-                }
+            getPasswordForAccount(account) { password ->
+                client.transferMoneyAsync(password, data) { response ->
+                    if (response.successful) {
+                        updateAccountTransactionsAsync(account, true)
+                        handleSuccessfulResponse(account.bank, response)
+                    }
+                    else {
+                        handleUnsuccessfulResponse(account.bank, response)
+                    }
 
-                callback(response)
+                    callback(response)
+                }
             }
         }
     }

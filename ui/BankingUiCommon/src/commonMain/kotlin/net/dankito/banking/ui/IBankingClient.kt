@@ -15,12 +15,9 @@ interface IBankingClient {
 
     fun addAccountAsync(callback: (AddAccountResponse) -> Unit)
 
-    fun getTransactionsAsync(
-        parameter: GetTransactionsParameter,
-        callback: (GetTransactionsResponse) -> Unit
-    )
+    fun getTransactionsAsync(password: String, parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit)
 
-    fun transferMoneyAsync(data: TransferMoneyData, callback: (BankingClientResponse) -> Unit)
+    fun transferMoneyAsync(password: String, data: TransferMoneyData, callback: (BankingClientResponse) -> Unit)
 
 
     fun dataChanged(bank: TypedBankData)

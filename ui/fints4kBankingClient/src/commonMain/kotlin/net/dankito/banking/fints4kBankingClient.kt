@@ -81,7 +81,9 @@ open class fints4kBankingClient(
     }
 
 
-    override fun getTransactionsAsync(parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
+    override fun getTransactionsAsync(password: String, parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
+        setPassword(password)
+
         val account = parameter.account
 
         findAccountForAccount(account) { accountData, response ->
@@ -121,7 +123,9 @@ open class fints4kBankingClient(
     }
 
 
-    override fun transferMoneyAsync(data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
+    override fun transferMoneyAsync(password: String, data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
+        setPassword(password)
+
         findAccountForAccount(data.account) { account, response ->
             if (account == null) {
                 if (response != null) {
@@ -164,6 +168,10 @@ open class fints4kBankingClient(
     }
 
 
+    protected open fun setPassword(password: String) {
+        fintsBank.pin = password
+    }
+
     protected open fun findAccountForAccount(account: TypedBankAccount, findAccountResult: (AccountData?, BankingClientResponse?) -> Unit) {
         val mappedAccount = mapper.findMatchingAccount(fintsBank, account)
 
@@ -196,7 +204,7 @@ open class fints4kBankingClient(
     }
 
     protected open fun mapToBankData(bank: TypedBankData): BankData {
-        return BankData(bank.bankCode, bank.userName, bank.password, bank.finTsServerAddress, bank.bic, bank.bankName)
+        return BankData(bank.bankCode, bank.userName, bank.password ?: "", bank.finTsServerAddress, bank.bic, bank.bankName)
     }
 
     protected open fun restoreData(bank: TypedBankData): BankData? {
@@ -210,6 +218,11 @@ open class fints4kBankingClient(
     }
 
     protected open fun saveData() {
+        val password = fintsBank.pin
+        if (bank.savePassword == false) {
+            fintsBank.pin = "" // to avoid that password gets stored
+        }
+
         try {
             // TODO: fix that real (child) class get serialized and re-enable again
 //            val clientDataFile = getFints4kClientDataFile(fintsBank.bankCode, fintsBank.customerId)
@@ -218,6 +231,8 @@ open class fints4kBankingClient(
         } catch (e: Exception) {
             log.error(e) { "Could not save bank data for $fintsBank" }
         }
+
+        fintsBank.pin = password
     }
 
     protected open fun getFints4kClientDataFile(bank: TypedBankData): File {

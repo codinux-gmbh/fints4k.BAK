@@ -89,7 +89,7 @@ open class fints4kModelMapper(protected val modelCreator: IModelCreator) {
      */
     open fun mapChangesFromUiToClientModel(bank: TypedBankData, fintsBank: BankData) {
         fintsBank.customerId = bank.userName
-        fintsBank.pin = bank.password
+        fintsBank.pin = bank.password ?: ""
 
         fintsBank.bankCode = bank.bankCode
 

@@ -8,7 +8,7 @@ import net.dankito.utils.multiplatform.UUID
 open class BankData(
     override var bankCode: String,
     override var userName: String,
-    override var password: String,
+    override var password: String?,
     override var finTsServerAddress: String,
     override var bankName: String,
     override var bic: String,

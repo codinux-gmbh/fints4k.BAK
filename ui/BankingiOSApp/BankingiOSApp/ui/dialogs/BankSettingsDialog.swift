@@ -39,7 +39,7 @@ struct BankSettingsDialog: View {
         _displayName = State(initialValue: bank.displayName)
         
         _userName = State(initialValue: bank.userName)
-        _password = State(initialValue: bank.password)
+        _password = State(initialValue: bank.password ?? "")
         _savePassword = State(initialValue: bank.savePassword)
         
         _selectedTanMethod = State(initialValue: bank.selectedTanMethod)

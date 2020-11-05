@@ -62,7 +62,7 @@ open class BankSettingsDialog : SettingsDialogBase() {
 
             edtxtBankName.text = bank.displayName
             edtxtUserName.text = bank.userName
-            bankCredentialsPassword.password = bank.password
+            bankCredentialsPassword.password = bank.password ?: ""
             bankCredentialsPassword.savePassword = bank.savePassword
 
             val tanMethodItems = createTanMethodItems()

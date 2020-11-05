@@ -136,7 +136,9 @@ open class hbci4jBankingClient(
         return getTransactions(GetTransactionsParameter(account, account.supportsRetrievingBalance, ninetyDaysAgo)) // TODO: implement abortIfTanIsRequired
     }
 
-    override fun getTransactionsAsync(parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
+    override fun getTransactionsAsync(password: String, parameter: GetTransactionsParameter, callback: (GetTransactionsResponse) -> Unit) {
+        setPassword(password)
+
         asyncRunner.runAsync {
             callback(getTransactions(parameter))
         }
@@ -227,7 +229,9 @@ open class hbci4jBankingClient(
     }
 
 
-    override fun transferMoneyAsync(data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
+    override fun transferMoneyAsync(password: String, data: TransferMoneyData, callback: (BankingClientResponse) -> Unit) {
+        setPassword(password)
+
         asyncRunner.runAsync {
             callback(transferMoney(data))
         }
@@ -279,7 +283,7 @@ open class hbci4jBankingClient(
 
         credentials.bankCode = bank.bankCode
         credentials.customerId = bank.userName
-        credentials.password = bank.password
+        credentials.password = bank.password ?: ""
     }
 
     override fun deletedBank(bank: TypedBankData, wasLastAccountWithThisCredentials: Boolean) {
@@ -347,6 +351,11 @@ open class hbci4jBankingClient(
         }
 
         return ConnectResult(true, null, handle, passport)
+    }
+
+
+    protected open fun setPassword(password: String) {
+        credentials.password = password
     }
 
     protected open fun getPassportFile(credentials: AccountCredentials): File {

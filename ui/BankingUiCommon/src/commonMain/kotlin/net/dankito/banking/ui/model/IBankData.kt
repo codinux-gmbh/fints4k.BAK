@@ -15,7 +15,7 @@ interface IBankData<TAccount: IBankAccount<TAccountTransaction>, TAccountTransac
 
     var bankCode: String
     var userName: String
-    var password: String
+    var password: String?
     var finTsServerAddress: String
 
     var bankName: String

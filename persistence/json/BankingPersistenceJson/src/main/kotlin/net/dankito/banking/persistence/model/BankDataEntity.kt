@@ -12,7 +12,7 @@ import java.util.*
 open class BankDataEntity(
     override var bankCode: String,
     override var userName: String,
-    override var password: String,
+    override var password: String?,
     override var finTsServerAddress: String,
     override var bankName: String,
     override var bic: String,
