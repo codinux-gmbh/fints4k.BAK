@@ -42,7 +42,9 @@ open class EpcQrCodeParser {
         if (version == EpcQrCodeVersion.Version1 && isNotSet(lines[4])) {
             return createInvalidFormatResult(decodedQrCode, "The BIC line 5 may only be omitted in EPC-QR-Code version 002")
         }
-        if (lines[4].length != 8 && lines[4].length != 11 && (version == EpcQrCodeVersion.Version1 || isNotSet(lines[4]) == false)) {
+
+        val bic = lines[4].replace(" ", "") // not correct, but out there in the wild: sometimes BIC contains whitespaces
+        if (bic.length != 8 && bic.length != 11 && (version == EpcQrCodeVersion.Version1 || isNotSet(bic) == false)) {
             return createInvalidFormatResult(decodedQrCode, "The BIC line 5, ${lines[4]}, must be either 8 or 11 characters long.")
         }
 
@@ -95,7 +97,7 @@ open class EpcQrCodeParser {
 
         return ParseEpcQrCodeResult(
             decodedQrCode, ParseEpcQrCodeResultCode.Success, EpcQrCode(
-                lines[0], version, coding, lines[3], parseToNullableString(lines[4]), lines[5], lines[6],
+                lines[0], version, coding, lines[3], parseToNullableString(bic), lines[5], lines[6],
                 currencyCode, amount, parseToNullableString(lines[8]), parseToNullableString(lines[9]), reconciliationText, displayText
             )
             , null
@@ -106,8 +108,8 @@ open class EpcQrCodeParser {
         return line // TODO: does encoding work out of the box? // TODO: are there any encodings with more than one byte per characters allowed per specification
     }
 
-    protected open fun parseToNullableString(lines: String): String? {
-        return if (isNotSet(lines)) null else lines
+    protected open fun parseToNullableString(line: String): String? {
+        return if (isNotSet(line)) null else line
     }
 
     protected open fun isNotSet(line: String): Boolean {
