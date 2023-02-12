@@ -20,6 +20,10 @@ interface IBankingPersistence {
 
     fun saveOrUpdateAccountTransactions(account: TypedBankAccount, transactions: List<IAccountTransaction>)
 
+    fun getAllTransactions(): List<IAccountTransaction>
+
+    fun findAccountTransactionInfo(query: String, selectedAccountType: SelectedAccountType, accounts: List<TypedBankAccount>): List<AccountTransactionInfo>
+
 
     fun saveOrUpdateAppSettings(appSettings: AppSettings)
 

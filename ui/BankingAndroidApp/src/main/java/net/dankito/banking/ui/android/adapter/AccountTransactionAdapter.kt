@@ -8,7 +8,7 @@ import net.dankito.banking.ui.android.adapter.viewholder.AccountTransactionViewH
 import net.dankito.banking.ui.android.dialogs.AccountTransactionDetailsDialog
 import net.dankito.banking.ui.android.extensions.setIcon
 import net.dankito.banking.ui.android.extensions.showAmount
-import net.dankito.banking.ui.model.IAccountTransaction
+import net.dankito.banking.ui.model.AccountTransactionInfo
 import net.dankito.banking.ui.presenter.BankingPresenter
 import net.dankito.utils.android.extensions.asActivity
 import net.dankito.utils.android.extensions.hide
@@ -17,10 +17,10 @@ import net.dankito.utils.android.ui.adapter.ListRecyclerAdapter
 
 
 open class AccountTransactionAdapter(protected val presenter: BankingPresenter)
-    : ListRecyclerAdapter<IAccountTransaction, AccountTransactionViewHolder>() {
+    : ListRecyclerAdapter<AccountTransactionInfo, AccountTransactionViewHolder>() {
 
 
-    var selectedTransaction: IAccountTransaction? = null
+    var selectedTransaction: AccountTransactionInfo? = null
 
 
     override fun getListItemLayoutId() = R.layout.list_item_account_transaction
@@ -33,7 +33,7 @@ open class AccountTransactionAdapter(protected val presenter: BankingPresenter)
         return viewHolder
     }
 
-    override fun bindItemToView(viewHolder: AccountTransactionViewHolder, item: IAccountTransaction) {
+    override fun bindItemToView(viewHolder: AccountTransactionViewHolder, item: AccountTransactionInfo) {
         viewHolder.txtvwDate.text = presenter.formatToShortDate(item.valueDate)
 
         val label = if (item.showOtherPartyName) item.otherPartyName else item.bookingText
@@ -53,7 +53,8 @@ open class AccountTransactionAdapter(protected val presenter: BankingPresenter)
         }
 
         viewHolder.itemView.setOnClickListener {
-            AccountTransactionDetailsDialog().show(item, viewHolder.itemView.context as AppCompatActivity)
+            // TODO: implement query to get full AccountTransaction
+//            AccountTransactionDetailsDialog().show(item, viewHolder.itemView.context as AppCompatActivity)
         }
     }
 

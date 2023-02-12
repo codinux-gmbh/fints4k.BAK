@@ -2,15 +2,15 @@ package net.dankito.banking.persistence
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import net.dankito.banking.persistence.dao.BaseDao
 import net.dankito.banking.persistence.dao.saveOrUpdate
 import net.dankito.banking.persistence.model.*
+import net.dankito.banking.persistence.model.AccountTransaction
+import net.dankito.banking.persistence.model.BankAccount
 import net.dankito.banking.search.ITransactionPartySearcher
-import net.dankito.banking.search.TransactionParty
-import net.dankito.banking.ui.model.IAccountTransaction
-import net.dankito.banking.ui.model.TypedBankAccount
-import net.dankito.banking.ui.model.TypedBankData
-import net.dankito.banking.ui.model.settings.AppSettings
+import net.dankito.banking.ui.model.*
 import net.dankito.banking.ui.model.tan.MobilePhoneTanMedium
 import net.dankito.banking.ui.model.tan.TanGeneratorTanMedium
 import net.dankito.banking.util.persistence.downloadIcon
@@ -42,6 +42,13 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
 
     protected open val initializedListeners = CopyOnWriteArraySet<() -> Unit>()
 
+    private val MigrateFrom_1_to_2 = object : Migration(1, 2) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE VIEW `AccountTransactionInfoEntity` AS SELECT accountId, amount, currency, valueDate, sepaReference, unparsedReference, " +
+                    "bookingText, otherPartyName, otherPartyAccountId, otherPartyBankCode FROM AccountTransaction")
+        }
+    }
+
 
     override fun decryptData(password: CharArray): Boolean {
         val result = openDatabase(password)
@@ -71,6 +78,7 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
 
             database = Room.databaseBuilder(applicationContext, BankingDatabase::class.java, DatabaseName)
                 .openHelperFactory(factory)
+                .addMigrations(MigrateFrom_1_to_2)
                 .build()
 
             return true
@@ -132,8 +140,6 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
 
         val accounts = database.bankAccountDao().getAll()
 
-        val transactions = database.accountTransactionDao().getAll()
-
         val tanMethods = database.tanMethodDao().getAll()
 
         val tanMedia = database.tanMediumDao().getAll()
@@ -143,12 +149,6 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
 
             bank.accounts.filterIsInstance<BankAccount>().forEach { account ->
                 account.bank = bank
-
-                account.bookedTransactions = transactions.filter { it.accountId == account.id }
-
-                account.bookedTransactions.filterIsInstance<AccountTransaction>().forEach { transaction ->
-                    transaction.account = account
-                }
             }
 
             bank.supportedTanMethods = tanMethods.filter { it.bankId == bank.id }
@@ -161,7 +161,12 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
         return banks
     }
 
+
     override fun saveOrUpdateAccountTransactions(account: TypedBankAccount, transactions: List<IAccountTransaction>) {
+        if ((account as? BankAccount)?.id == null) {
+            log.warn("account (${account.javaClass.simpleName}) is either not a BankAccount (${! (account is BankAccount)}) or its ID is null (${(account as? BankAccount)?.id})")
+        }
+
         val accountId = (account as? BankAccount)?.id ?: account.technicalId.toLong()
 
         val mappedTransactions = transactions.filterIsInstance<AccountTransaction>()
@@ -169,6 +174,37 @@ open class RoomBankingPersistence(protected open val applicationContext: Context
         mappedTransactions.forEach { it.accountId = accountId }
 
         database.accountTransactionDao().saveOrUpdate(mappedTransactions)
+    }
+
+    override fun getAllTransactions(): List<IAccountTransaction> =
+        database.accountTransactionDao().getAll()
+
+    override fun findAccountTransactionInfo(query: String, selectedAccountType: SelectedAccountType, accounts: List<TypedBankAccount>): List<AccountTransactionInfo> {
+        // TODO: implement query for SelectedAccountType.AllAccounts
+
+        val queryLowercase = query.trim().toLowerCase()
+        val accountsById = accounts.filter { (it as? BankAccount)?.id != null }.associateBy { (it as? BankAccount)?.id } as Map<Long, BankAccount>
+
+        if (queryLowercase.isEmpty()) {
+            if (selectedAccountType == SelectedAccountType.AllAccounts) {
+                val transactions = database.accountTransactionDao().getAllTransactionInfo()
+                return transactions.mapNotNull { map(accountsById, it) }
+            }
+
+            return database.accountTransactionDao().getAllTransactionInfo(accountsById.keys).mapNotNull { map(accountsById, it) }
+        }
+
+        return database.accountTransactionDao().findTransactionInfo(query, accountsById.keys).mapNotNull { map(accountsById, it) }
+    }
+
+    protected open fun map(accountsById: Map<Long, BankAccount>, transaction: AccountTransactionInfoEntity): AccountTransactionInfo? {
+        val account = accountsById[transaction.accountId]
+        if (account == null) { // should never happen
+            return null
+        }
+
+        return AccountTransactionInfo(account, transaction.amount, transaction.currency, transaction.valueDate, transaction.sepaReference,
+            transaction.unparsedReference, transaction.bookingText, transaction.otherPartyName, transaction.otherPartyAccountId, transaction.otherPartyBankCode)
     }
 
 

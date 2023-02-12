@@ -16,7 +16,7 @@ open class TransferMoneyData(
 
     companion object {
 
-        fun fromAccountTransactionWithoutAmountAndReference(transaction: IAccountTransaction): TransferMoneyData {
+        fun fromAccountTransactionWithoutAmountAndReference(transaction: AccountTransactionInfo): TransferMoneyData {
             return TransferMoneyData(
                 transaction.account as TypedBankAccount,
                 transaction.otherPartyName ?: "",
@@ -27,7 +27,7 @@ open class TransferMoneyData(
             )
         }
 
-        fun fromAccountTransaction(transaction: IAccountTransaction): TransferMoneyData {
+        fun fromAccountTransaction(transaction: AccountTransactionInfo): TransferMoneyData {
             return TransferMoneyData(
                 transaction.account as TypedBankAccount,
                 transaction.otherPartyName ?: "",

@@ -68,6 +68,18 @@ open class BankingPersistenceJson(
         // TODO: or also call saveAllBanks()?
     }
 
+    override fun getAllTransactions(): List<IAccountTransaction> =
+        allBanks?.flatMap { it.accounts }?.flatMap { it.bookedTransactions } ?: listOf()
+
+    override fun findAccountTransactionInfo(query: String, selectedAccountType: SelectedAccountType, accounts: List<TypedBankAccount>): List<AccountTransactionInfo> {
+        // TODO: implement query for SelectedAccountType.AllAccounts
+
+        val queryLowercase = query.trim().toLowerCase()
+        val allTransactions = getAllTransactions()
+
+        return listOf() // TODO: filter and map transactions
+    }
+
 
     protected open fun saveAllBanks(allBanks: List<TypedBankData>) {
         this.allBanks = allBanks

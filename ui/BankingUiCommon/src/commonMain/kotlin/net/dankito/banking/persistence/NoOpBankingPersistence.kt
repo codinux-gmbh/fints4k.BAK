@@ -32,6 +32,12 @@ open class NoOpBankingPersistence : IBankingPersistence {
 
     }
 
+    override fun getAllTransactions(): List<IAccountTransaction> = emptyList()
+
+    override fun findAccountTransactionInfo(query: String, selectedAccountType: SelectedAccountType, accounts: List<TypedBankAccount>): List<AccountTransactionInfo> {
+        return listOf()
+    }
+
 
     override fun saveOrUpdateAppSettings(appSettings: AppSettings) {
 

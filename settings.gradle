@@ -33,8 +33,9 @@ include ':RoomBankingPersistence'
 
 include ':BankingAndroidApp'
 
-include ':BankingJavaFxControls'
-include ':BankingJavaFxApp'
+// JavaFX project has not been migrated to AccountTransactionInfo
+//include ':BankingJavaFxControls'
+//include ':BankingJavaFxApp'
 
 include ':BankingUiNativeIntegration'
 
@@ -46,8 +47,8 @@ project(':hbci4jBankingClient').projectDir = "$rootDir/ui/hbci4jBankingClient/" 
 
 project(':BankingAndroidApp').projectDir = "$rootDir/ui/BankingAndroidApp/" as File
 
-project(':BankingJavaFxControls').projectDir = "$rootDir/ui/BankingJavaFxControls/" as File
-project(':BankingJavaFxApp').projectDir = "$rootDir/ui/BankingJavaFxApp/" as File
+//project(':BankingJavaFxControls').projectDir = "$rootDir/ui/BankingJavaFxControls/" as File
+//project(':BankingJavaFxApp').projectDir = "$rootDir/ui/BankingJavaFxApp/" as File
 
 project(':BankingUiNativeIntegration').projectDir = "$rootDir/ui/BankingUiNativeIntegration/" as File
 

@@ -125,7 +125,8 @@ open class SettingsDialog : SettingsDialogBase() {
 
     protected open fun exportAccountTransactions() {
         val initialDirectory = presenter.appSettings.lastSelectedExportFolder.toFile()
-        val suggestedFilename = getExportCsvSuggestedFilename()
+        val allTransactionsSorted = presenter.getAllTransactions().sortedByDate()
+        val suggestedFilename = getExportCsvSuggestedFilename(allTransactionsSorted)
 
 //        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
 //        intent.addCategory(Intent.CATEGORY_OPENABLE)
@@ -139,7 +140,7 @@ open class SettingsDialog : SettingsDialogBase() {
             val config = FileChooserDialogConfig(initialDirectory = initialDirectory, suggestedFilenameForSaveFileDialog = suggestedFilename)
             FileChooserDialog().showSaveFileInFullscreenDialog(activity, permissionsService, config) { _, selectedFile ->
                 selectedFile?.let {
-                    val transactions = presenter.allTransactionsSorted.map { mapTransaction(it) }
+                    val transactions = allTransactionsSorted.map { mapTransaction(it) }
 
                     CsvAccountTransactionsExporter().export(selectedFile, transactions)
 
@@ -151,8 +152,7 @@ open class SettingsDialog : SettingsDialogBase() {
     }
 
     // TODO: this is almost the same code as in JavaFX MainMenuBar.getExportCsvSuggestedFilename() -> merge
-    protected open fun getExportCsvSuggestedFilename(): String? {
-        val transactions = presenter.allTransactions
+    protected open fun getExportCsvSuggestedFilename(transactions: List<IAccountTransaction>): String? {
         val transactionsDates = transactions.map { it.valueDate }
         val transactionsStartDate = transactionsDates.min()
         val transactionsEndDate = transactionsDates.max()

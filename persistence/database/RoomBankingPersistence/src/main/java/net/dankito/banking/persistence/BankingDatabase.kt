@@ -11,7 +11,7 @@ import net.dankito.banking.persistence.model.*
     Bank::class, BankAccount::class, AccountTransaction::class,
     TanMethod::class, TanMedium::class,
     AppSettings::class, TanMethodSettings::class
-], version = 1, exportSchema = false)
+], views = [ AccountTransactionInfoEntity::class ], version = 2, exportSchema = false)
 @TypeConverters(net.dankito.banking.persistence.TypeConverters::class)
 abstract class BankingDatabase : RoomDatabase() {
 

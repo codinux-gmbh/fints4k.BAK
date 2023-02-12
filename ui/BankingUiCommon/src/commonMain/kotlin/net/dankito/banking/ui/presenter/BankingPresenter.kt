@@ -786,25 +786,8 @@ open class BankingPresenter(
     }
 
 
-    open fun searchSelectedAccountTransactions(query: String): List<IAccountTransaction> {
-        return searchAccountTransactions(query, selectedAccountsTransactions)
-    }
-
-    open fun searchAccountTransactions(query: String, transactions: List<IAccountTransaction>): List<IAccountTransaction> {
-        val queryLowercase = query.trim().toLowerCase()
-
-        // get unique transactions sorted by date
-        val uniqueTransactionsSorted = transactions.toSet().sortedByDate()
-
-        if (queryLowercase.isEmpty()) {
-            return uniqueTransactionsSorted
-        }
-
-        return uniqueTransactionsSorted.filter {
-            it.otherPartyName?.toLowerCase()?.contains(queryLowercase) == true
-                    || it.reference.toLowerCase().contains(queryLowercase)
-                    || it.bookingText?.toLowerCase()?.contains(queryLowercase) == true
-        }
+    open fun searchSelectedAccountTransactions(query: String): List<AccountTransactionInfo> {
+        return persister.findAccountTransactionInfo(query, selectedAccountType, selectedAccounts)
     }
 
 
@@ -882,9 +865,6 @@ open class BankingPresenter(
 
     open val selectedAccounts: List<TypedBankAccount>
         get() = ArrayList(_selectedAccounts)
-
-    open val selectedAccountsTransactions: List<IAccountTransaction>
-        get() = getTransactionsForAccounts(selectedAccounts)
 
     open val balanceOfSelectedAccounts: BigDecimal
         get() = sumBalance(selectedAccounts.map { it.balance })
@@ -992,12 +972,6 @@ open class BankingPresenter(
     open val allVisibleAccounts: List<TypedBankAccount>
         get() = allBanks.flatMap { it.accounts }.withoutHiddenOnes()
 
-    open val allTransactions: List<IAccountTransaction>
-        get() = getTransactionsForAccounts(allVisibleAccounts)
-
-    open val allTransactionsSorted: List<IAccountTransaction>
-        get() = getTransactionsForAccountsSorted(allVisibleAccounts)
-
     open val balanceOfAllAccounts: BigDecimal
         get() = getBalanceForBanks(allBanks)
 
@@ -1048,13 +1022,8 @@ open class BankingPresenter(
     }
 
 
-    protected open fun getTransactionsForAccounts(accounts: Collection<TypedBankAccount>): List<IAccountTransaction> {
-        return accounts.flatMap { it.bookedTransactions }.sortedByDescending { it.valueDate.millisSinceEpoch } // TODO: someday add unbooked transactions
-    }
-
-    protected open fun getTransactionsForAccountsSorted(accounts: Collection<TypedBankAccount>): List<IAccountTransaction> {
-        return getTransactionsForAccounts(accounts).sortedByDate()
-    }
+    open fun getAllTransactions(): List<IAccountTransaction> =
+        persister.getAllTransactions()
 
     open fun currencyIsoCodeOfAccounts(accounts: List<TypedBankAccount>): String {
         // TODO: this is of course not right, it assumes that all accounts have the same currency. But we don't support e.g. calculating the balance of accounts with different currencies anyway
@@ -1091,7 +1060,7 @@ open class BankingPresenter(
 
         // check first if transactions already have been received and then if retrieving transactions is supported as it already occurred that
         // transactions have been retrieved but account.supportsRetrievingAccountTransactions was set to false (may retrieving transactions is now not supported anymore)
-        if (account.bookedTransactions.isNotEmpty()) {
+        if (account.bookedTransactions.isNotEmpty()) { // TODO: this obviously does not work anymore
             return TransactionsRetrievalState.RetrievedTransactions
         }
 
@@ -1100,7 +1069,8 @@ open class BankingPresenter(
         }
 
         if (account.retrievedTransactionsUpTo != null) {
-            return TransactionsRetrievalState.NoTransactionsInRetrievedPeriod
+//            return TransactionsRetrievalState.NoTransactionsInRetrievedPeriod
+            return TransactionsRetrievalState.RetrievedTransactions // TODO: undo
         }
 
         return TransactionsRetrievalState.NeverRetrievedTransactions

@@ -23,6 +23,7 @@ import net.dankito.banking.ui.android.di.BankingComponent
 import net.dankito.banking.ui.android.extensions.addHorizontalItemDivider
 import net.dankito.banking.ui.android.extensions.showAmount
 import net.dankito.banking.ui.android.views.InfoPopupWindow
+import net.dankito.banking.ui.model.AccountTransactionInfo
 import net.dankito.banking.ui.model.SelectedAccountType
 import net.dankito.banking.ui.model.TransactionsRetrievalState
 import net.dankito.banking.ui.model.TypedBankAccount
@@ -32,6 +33,7 @@ import net.dankito.banking.ui.presenter.BankingPresenter
 import net.dankito.utils.android.extensions.*
 import net.dankito.utils.multiplatform.sum
 import javax.inject.Inject
+import kotlin.concurrent.thread
 
 
 class HomeFragment : Fragment() {
@@ -261,19 +263,13 @@ class HomeFragment : Fragment() {
     private fun updateTransactionsToDisplayOnUiThread() {
         setToolbarTitle()
 
-        transactionAdapter.items = presenter.searchSelectedAccountTransactions(appliedTransactionsFilter)
+        thread {
+            val transactions = presenter.searchSelectedAccountTransactions(appliedTransactionsFilter)
 
-        lytTransactionsSummary.setVisibility(presenter.doSelectedAccountsSupportRetrievingBalance)
-
-        txtCountTransactions.text = context?.getString(R.string.fragment_home_count_transactions, transactionAdapter.items.size)
-
-        val sumOfDisplayedTransactions = if (appliedTransactionsFilter.isBlank()) presenter.balanceOfSelectedAccounts
-                                            else transactionAdapter.items.map { it.amount }.sum()
-        txtTransactionsBalance.showAmount(presenter, sumOfDisplayedTransactions)
-
-        setRecyclerViewAndNoTransactionsFetchedView()
-
-        setFetchAllTransactionsView()
+            context?.asActivity()?.runOnUiThread {
+                showRetrievedTransactionsOnUiThread(transactions)
+            }
+        }
     }
 
     private fun setToolbarTitle() {
@@ -288,6 +284,22 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showRetrievedTransactionsOnUiThread(transactions: List<AccountTransactionInfo>) {
+        transactionAdapter.items = transactions
+
+        lytTransactionsSummary.setVisibility(presenter.doSelectedAccountsSupportRetrievingBalance)
+
+        txtCountTransactions.text = context?.getString(R.string.fragment_home_count_transactions, transactionAdapter.items.size)
+
+        val sumOfDisplayedTransactions = if (appliedTransactionsFilter.isBlank()) presenter.balanceOfSelectedAccounts
+        else transactionAdapter.items.map { it.amount }.sum()
+        txtTransactionsBalance.showAmount(presenter, sumOfDisplayedTransactions)
+
+        setRecyclerViewAndNoTransactionsFetchedView()
+
+        setFetchAllTransactionsView() // i think only for this banksChangedListener has been added
     }
 
     private fun setRecyclerViewAndNoTransactionsFetchedView() {
